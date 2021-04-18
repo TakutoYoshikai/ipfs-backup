@@ -1,0 +1,96 @@
+#!/bin/bash
+
+key=~/.ipfs-backup-key
+
+function fetch_file() {
+  ipfs_hash=$1
+  out=$2
+  mkdir -p `dirname $out` > /dev/null 2>&1
+  ipfs cat $ipfs_hash > $out
+}
+
+function upload_file() {
+  input=$1
+  line=`ipfs add $input | head -n 1`
+  words=($line)
+  echo "${words[1]}"
+}
+
+function encrypt() {
+  input=$1
+  mkdir -p ".ipfs-tmp/encrypted/`dirname $1`" > /dev/null 2>&1
+  output=".ipfs-tmp/encrypted/$1"
+  if [ "$2" != "" ]; then
+    output=$2
+  fi
+  openssl aes-256-cbc -e -in $input -out $output -pass file:$key > /dev/null 2>&1
+}
+
+function decrypt() {
+  input=$1
+  output=".ipfs-tmp/decrypted/$1"
+  if [ "$2" != "" ]; then
+    output=$2
+  fi
+  mkdir -p `dirname $output` > /dev/null 2>&1
+  openssl aes-256-cbc -d -in $input -out $output -pass file:$key > /dev/null 2>&1
+}
+
+function all_files() {
+  files=($(find .))
+  for file_path in "${files[@]}"
+  do
+    if [[ $file_path != ./.ipfs-tmp ]]; then
+      echo $file_path
+    fi
+  done
+}
+function backup_dir() {
+  files=(`all_files | tail -n +2`)
+  for file_path in "${files[@]}"
+  do
+    if [ -f $file_path ]; then
+      encrypt $file_path
+    fi
+  done
+  for file_path in "${files[@]}"
+  do
+    if [ -f $file_path ]; then
+      ipfs_hash=`upload_file .ipfs-tmp/encrypted/$file_path`
+      echo $file_path $ipfs_hash >> .ipfs-tmp/backup.lst
+    fi
+  done
+  encrypt ./.ipfs-tmp/backup.lst ./.ipfs-tmp/backup.lst.enc
+  upload_file ./.ipfs-tmp/backup.lst.enc
+  rm -rf .ipfs-tmp
+}
+
+function restore() {
+  ipfs_hash=$1
+  mkdir ./.ipfs-tmp
+  fetch_file $ipfs_hash ./.ipfs-tmp/backup.lst.enc
+  decrypt ./.ipfs-tmp/backup.lst.enc ./.ipfs-tmp/backup.lst
+  while read _file
+  do
+    file=($_file)
+    file_path="${file[0]}"
+    ipfs_hash="${file[1]}"
+    fetch_file $ipfs_hash ./.ipfs-tmp/fetch/$file_path
+    decrypt .ipfs-tmp/fetch/$file_path $file_path
+  done < ./.ipfs-tmp/backup.lst
+  rm -rf .ipfs-tmp
+}
+
+if [ "$1" = "save" -a -f $key ]; then
+  backup_dir
+  exit
+fi
+if [ "$1" = "restore" -a -f $key ]; then
+  restore $2
+  exit
+fi
+if [ "$1" = "init" ]; then
+  cat /dev/urandom | base64 | fold -w 512 | head -n 1 > $key
+  exit
+fi
+
