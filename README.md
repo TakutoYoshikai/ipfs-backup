@@ -15,8 +15,7 @@ ipfs-backup init
 
 **save data**
 ```bash
-cd /path/to/dir
-ipfs-backup save
+ipfs-backup save /path/to/dir
 # copy the cid.
 ```
 
