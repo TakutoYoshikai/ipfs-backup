@@ -83,6 +83,10 @@ function restore() {
 }
 
 if [ "$1" = "save" -a -f $key ]; then
+  if [ "$2" = "" ]; then
+    echo It needs path to directory.
+    exit
+  fi
   cd $2 || exit
   ipfs_hash=`backup_dir`
   ipfs-backup-iota register `cat $key` $ipfs_hash
