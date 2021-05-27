@@ -1,6 +1,10 @@
 # ipfs-backup
 This is a backup tool to save data to IPFS network. backup data is encrypted.
 
+### Requirements
+* Ubuntu 20.04 ~
+* Node.js
+
 ### Usage
 **initialize**
 
