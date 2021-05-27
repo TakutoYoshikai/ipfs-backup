@@ -89,11 +89,12 @@ if [ "$1" = "save" -a -f $key ]; then
   fi
   cd $2 || exit
   ipfs_hash=`backup_dir`
-  ipfs-backup-iota register `cat $key` $ipfs_hash
+  ipfs-backup-iota register `cat $key`$3 $ipfs_hash
   exit
 fi
 if [ "$1" = "restore" -a -f $key ]; then
   k=`cat $key`
+  k=$k$2
   ipfs_hash=`ipfs-backup-iota get $k`
   restore $ipfs_hash
   exit
