@@ -82,14 +82,18 @@ function restore() {
 }
 
 if [ "$1" = "save" -a -f $key ]; then
-  backup_dir
+  ipfs_hash=`backup_dir`
+  ipfs-backup-iota register `cat $key` $ipfs_hash
   exit
 fi
 if [ "$1" = "restore" -a -f $key ]; then
-  restore $2
+  k=`cat $key`
+  ipfs_hash=`ipfs-backup-iota get $k`
+  restore $ipfs_hash
   exit
 fi
 if [ "$1" = "init" ]; then
+  npm install -g TakutoYoshikai/ipfs-backup-iota
   cat /dev/urandom | base64 | fold -w 512 | head -n 1 > $key
   exit
 fi
